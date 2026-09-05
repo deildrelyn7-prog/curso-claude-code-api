@@ -12,5 +12,9 @@ def get_database_url() -> str:
     return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}"
 
 
-engine: AsyncEngine = create_async_engine(get_database_url())
-async_session = async_sessionmaker(engine, expire_on_commit=False)
+def get_engine() -> AsyncEngine:
+    return create_async_engine(get_database_url())
+
+
+def get_sessionmaker() -> async_sessionmaker:
+    return async_sessionmaker(get_engine(), expire_on_commit=False)
