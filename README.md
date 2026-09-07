@@ -1,8 +1,10 @@
 # TaskFlow API
 
 Base de la API de TaskFlow: FastAPI gestionada con [uv](https://docs.astral.sh/uv/)
-y Python 3.12. Expone `GET /health`, el catálogo `GET /states` y el recurso
-Proyectos (`POST`, `GET` de colección, `GET` de detalle y `PATCH`).
+y Python 3.12. Expone `GET /health`, el catálogo `GET /states`, el recurso
+Proyectos (`POST`, `GET` de colección, `GET` de detalle y `PATCH`) y el
+recurso Tareas v1 (`POST`, `GET` de colección con filtros `project_id` y
+`state_id`, `GET` de detalle, `PATCH` y `DELETE`).
 
 ## Requisitos
 
@@ -27,7 +29,7 @@ uv run ruff check .
 # 4. Levantar PostgreSQL en segundo plano
 docker compose up -d
 
-# 5. Aplicar las migraciones (crea el catálogo de estados y la tabla projects)
+# 5. Aplicar las migraciones (crea el catálogo de estados y las tablas projects y tasks)
 uv run alembic upgrade head
 
 # 6. Servir la API (Ctrl+C para parar)
@@ -40,6 +42,13 @@ uv run uvicorn app.main:app --reload
 #         -H 'Content-Type: application/json' -d '{"name":"Casa"}'
 #         ->  {"id":1,"name":"Casa","description":null}
 #    curl http://localhost:8000/projects  ->  [{"id":1,"name":"Casa","description":null}]
+#    curl -X POST http://localhost:8000/tasks \
+#         -H 'Content-Type: application/json' \
+#         -d '{"title":"Regar las plantas","project_id":1}'
+#         ->  {"id":1,"title":"Regar las plantas","description":null,"project_id":1,"state_id":1}
+#    curl http://localhost:8000/tasks
+#         ->  [{"id":1,"title":"Regar las plantas","description":null,"project_id":1,"state_id":1}]
+#    curl 'http://localhost:8000/tasks?project_id=1&state_id=1'   # filtros solos o combinados
 
 # 7. Parar y retirar los contenedores
 docker compose down
@@ -54,11 +63,13 @@ ajusta `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` y `POSTGRES_PORT`.
 ## Estructura
 
 - `app/main.py` — aplicación ASGI, expuesta como `app.main:app`.
-- `app/models.py` — modelos SQLAlchemy: `State` y `Project`.
+- `app/models.py` — modelos SQLAlchemy: `State`, `Project` y `Task`.
 - `app/db.py` — URL de conexión y `sessionmaker` async desde variables de entorno.
-- `alembic/versions/` — migraciones: catálogo de estados y tabla `projects`.
+- `alembic/versions/` — migraciones: catálogo de estados y tablas `projects` y `tasks`.
 - `tests/test_health.py` — verifica `GET /health` mediante una petición ASGI.
 - `tests/test_states.py`, `tests/test_states_migration.py` — catálogo de estados.
 - `tests/test_projects.py` — CRUD de Proyectos por HTTP contra la base real.
 - `tests/test_projects_migration.py` — `upgrade`/`downgrade` de la tabla `projects`.
+- `tests/test_tasks.py` — CRUD y filtros de Tareas por HTTP contra la base real.
+- `tests/test_tasks_migration.py` — `upgrade`/`downgrade` de la tabla `tasks`.
 - `compose.yaml` — servicio `db` con PostgreSQL 18-alpine.
