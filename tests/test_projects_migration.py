@@ -58,7 +58,7 @@ async def test_projects_migration_creates_and_drops_table() -> None:
 async def test_projects_downgrade_one_step_keeps_states() -> None:
     run_alembic("downgrade", "base")
     run_alembic("upgrade", "head")
-    run_alembic("downgrade", "-1")
+    run_alembic("downgrade", STATES_REVISION)
 
     engine = create_async_engine(get_database_url())
     try:
