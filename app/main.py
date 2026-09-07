@@ -161,6 +161,24 @@ async def patch_project(project_id: int, payload: ProjectPatch) -> dict[str, obj
         return _serialize(project)
 
 
+@app.delete("/projects/{project_id}", status_code=204)
+async def delete_project(project_id: int) -> None:
+    async_session = get_sessionmaker()
+    async with async_session() as session:
+        project = await session.get(Project, project_id)
+        if project is None:
+            raise HTTPException(status_code=404, detail="proyecto no encontrado")
+        tiene_tareas = await session.execute(
+            select(Task.id).where(Task.project_id == project_id).limit(1)
+        )
+        if tiene_tareas.first() is not None:
+            raise HTTPException(
+                status_code=409, detail="el proyecto tiene tareas asociadas"
+            )
+        await session.delete(project)
+        await session.commit()
+
+
 async def _resolver_state_id(session, state_id: int | None) -> int:
     """Devuelve el state_id a usar: el enviado (si existe) o el de PENDIENTE."""
     if state_id is None:

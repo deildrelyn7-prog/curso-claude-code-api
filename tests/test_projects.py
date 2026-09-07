@@ -184,3 +184,40 @@ async def test_patch_project_esquema_exacto() -> None:
         )
 
     assert set(response.json().keys()) == PROJECT_KEYS
+
+
+async def test_delete_project_sin_tareas_es_204() -> None:
+    async with client() as c:
+        creado = await c.post("/projects", json={"name": "Casa"})
+        project_id = creado.json()["id"]
+        response = await c.delete(f"/projects/{project_id}")
+        leido = await c.get(f"/projects/{project_id}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert leido.status_code == 404
+
+
+async def test_delete_project_con_tareas_es_409_y_no_borra_en_cascada() -> None:
+    async with client() as c:
+        creado = await c.post("/projects", json={"name": "Casa"})
+        project_id = creado.json()["id"]
+        await c.post("/tasks", json={"title": "Regar", "project_id": project_id})
+
+        response = await c.delete(f"/projects/{project_id}")
+
+        proyecto = await c.get(f"/projects/{project_id}")
+        tareas = await c.get("/tasks")
+
+    assert response.status_code == 409
+    assert "detail" in response.json()
+    assert proyecto.status_code == 200
+    assert [t["title"] for t in tareas.json()] == ["Regar"]
+
+
+async def test_delete_project_inexistente_es_404() -> None:
+    async with client() as c:
+        response = await c.delete("/projects/999")
+
+    assert response.status_code == 404
+    assert "detail" in response.json()

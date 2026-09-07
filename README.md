@@ -2,9 +2,10 @@
 
 Base de la API de TaskFlow: FastAPI gestionada con [uv](https://docs.astral.sh/uv/)
 y Python 3.12. Expone `GET /health`, el catálogo `GET /states`, el recurso
-Proyectos (`POST`, `GET` de colección, `GET` de detalle y `PATCH`) y el
-recurso Tareas v1 (`POST`, `GET` de colección con filtros `project_id` y
-`state_id`, `GET` de detalle, `PATCH` y `DELETE`).
+Proyectos (`POST`, `GET` de colección, `GET` de detalle, `PATCH` y `DELETE`
+con `409` si el proyecto tiene tareas) y el recurso Tareas v1 (`POST`, `GET`
+de colección con filtros `project_id` y `state_id`, `GET` de detalle, `PATCH`
+y `DELETE`).
 
 ## Requisitos
 
