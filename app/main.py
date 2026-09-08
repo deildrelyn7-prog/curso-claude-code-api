@@ -1,4 +1,5 @@
 import unicodedata
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, field_validator
@@ -10,6 +11,7 @@ from app.models import Project, State, Task
 app = FastAPI(title="TaskFlow API")
 
 DEFAULT_STATE_CODE = "PENDIENTE"
+DONE_STATE_CODE = "HECHA"
 
 # Categorías Unicode sin carácter visible: control, formato, separadores de
 # línea, de párrafo y de espacio.
@@ -30,6 +32,13 @@ def _clean_title(value: str) -> str:
     ):
         raise ValueError("title no puede quedar sin carácter visible")
     return stripped
+
+
+def _clean_due_at(value: datetime) -> datetime:
+    """Rechaza una fecha sin zona y la normaliza a UTC."""
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("due_at debe incluir zona horaria")
+    return value.astimezone(UTC)
 
 
 class ProjectCreate(BaseModel):
@@ -59,11 +68,19 @@ class TaskCreate(BaseModel):
     description: str | None = None
     project_id: int
     state_id: int | None = None
+    due_at: datetime | None = None
 
     @field_validator("title")
     @classmethod
     def title_visible(cls, value: str) -> str:
         return _clean_title(value)
+
+    @field_validator("due_at")
+    @classmethod
+    def due_at_con_zona(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        return _clean_due_at(value)
 
 
 class TaskPatch(BaseModel):
@@ -71,6 +88,7 @@ class TaskPatch(BaseModel):
     description: str | None = None
     project_id: int | None = None
     state_id: int | None = None
+    due_at: datetime | None = None
 
     @field_validator("title")
     @classmethod
@@ -78,6 +96,13 @@ class TaskPatch(BaseModel):
         if value is None:
             return None
         return _clean_title(value)
+
+    @field_validator("due_at")
+    @classmethod
+    def due_at_con_zona(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        return _clean_due_at(value)
 
 
 def _serialize(project: Project) -> dict[str, object]:
@@ -88,6 +113,17 @@ def _serialize(project: Project) -> dict[str, object]:
     }
 
 
+def _serialize_due_at(value: datetime | None) -> str | None:
+    """UTC, sufijo `Z`, sin microsegundos: 2026-03-01T09:00:00Z."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    else:
+        value = value.astimezone(UTC)
+    return value.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _serialize_task(task: Task) -> dict[str, object]:
     return {
         "id": task.id,
@@ -95,6 +131,7 @@ def _serialize_task(task: Task) -> dict[str, object]:
         "description": task.description,
         "project_id": task.project_id,
         "state_id": task.state_id,
+        "due_at": _serialize_due_at(task.due_at),
     }
 
 
@@ -208,6 +245,7 @@ async def create_task(payload: TaskCreate) -> dict[str, object]:
             description=payload.description,
             project_id=payload.project_id,
             state_id=state_id,
+            due_at=payload.due_at,
         )
         session.add(task)
         await session.commit()
@@ -217,7 +255,9 @@ async def create_task(payload: TaskCreate) -> dict[str, object]:
 
 @app.get("/tasks")
 async def list_tasks(
-    project_id: int | None = None, state_id: int | None = None
+    project_id: int | None = None,
+    state_id: int | None = None,
+    overdue: bool | None = None,
 ) -> list[dict[str, object]]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -226,6 +266,13 @@ async def list_tasks(
             query = query.where(Task.project_id == project_id)
         if state_id is not None:
             query = query.where(Task.state_id == state_id)
+        if overdue:
+            done = select(State.id).where(State.code == DONE_STATE_CODE).scalar_subquery()
+            query = query.where(
+                Task.due_at.is_not(None),
+                Task.due_at < datetime.now(UTC),
+                Task.state_id != done,
+            )
         query = query.order_by(Task.id)
         result = await session.execute(query)
         tasks = result.scalars().all()
@@ -263,6 +310,8 @@ async def patch_task(task_id: int, payload: TaskPatch) -> dict[str, object]:
             task.title = payload.title
         if "description" in campos:
             task.description = payload.description
+        if "due_at" in campos:
+            task.due_at = payload.due_at
         await session.commit()
         await session.refresh(task)
         return _serialize_task(task)
