@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.db import get_database_url
 
 PROJECTS_REVISION = "e7a3a73c8c3b"
+TASKS_V1_REVISION = "323ce5858585"
 
 
 def run_alembic(*args: str) -> None:
@@ -50,11 +51,12 @@ async def test_tasks_migration_creates_and_drops_table() -> None:
 
     exists, names, nullable, referred = await _inspect_tasks()
     assert exists is True
-    assert {"id", "title", "description", "project_id", "state_id"} <= names
+    assert {"id", "title", "description", "project_id", "state_id", "due_at"} <= names
     assert nullable["title"] is False
     assert nullable["project_id"] is False
     assert nullable["state_id"] is False
     assert nullable["description"] is True
+    assert nullable["due_at"] is True
     assert {"projects", "states"} <= referred
 
     run_alembic("downgrade", "base")
@@ -63,7 +65,7 @@ async def test_tasks_migration_creates_and_drops_table() -> None:
 
 async def test_tasks_downgrade_one_step_keeps_projects_and_states() -> None:
     run_alembic("downgrade", "base")
-    run_alembic("upgrade", "head")
+    run_alembic("upgrade", TASKS_V1_REVISION)
     run_alembic("downgrade", "-1")
 
     engine = create_async_engine(get_database_url())
@@ -84,5 +86,22 @@ async def test_tasks_downgrade_one_step_keeps_projects_and_states() -> None:
     assert has_tasks is False
     assert has_projects is True
     assert has_states is True
+
+    run_alembic("upgrade", "head")
+
+
+async def test_due_at_migration_upgrade_and_rollback() -> None:
+    run_alembic("downgrade", "base")
+    run_alembic("upgrade", "head")
+
+    _, names, _, _ = await _inspect_tasks()
+    assert "due_at" in names
+
+    run_alembic("downgrade", TASKS_V1_REVISION)
+
+    exists, names, _, _ = await _inspect_tasks()
+    assert exists is True
+    assert "due_at" not in names
+    assert {"id", "title", "description", "project_id", "state_id"} <= names
 
     run_alembic("upgrade", "head")
