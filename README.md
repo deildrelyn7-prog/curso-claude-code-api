@@ -3,9 +3,10 @@
 Base de la API de TaskFlow: FastAPI gestionada con [uv](https://docs.astral.sh/uv/)
 y Python 3.12. Expone `GET /health`, el catálogo `GET /states`, el recurso
 Proyectos (`POST`, `GET` de colección, `GET` de detalle, `PATCH` y `DELETE`
-con `409` si el proyecto tiene tareas) y el recurso Tareas v1 (`POST`, `GET`
-de colección con filtros `project_id` y `state_id`, `GET` de detalle, `PATCH`
-y `DELETE`).
+con `409` si el proyecto tiene tareas) y el recurso Tareas (`POST`, `GET`
+de colección con filtros `project_id`, `state_id` y `overdue`, `GET` de
+detalle, `PATCH` y `DELETE`). Las tareas admiten `due_at` opcional, con zona
+horaria y normalizado a UTC.
 
 ## Requisitos
 
@@ -50,6 +51,11 @@ uv run uvicorn app.main:app --reload
 #    curl http://localhost:8000/tasks
 #         ->  [{"id":1,"title":"Regar las plantas","description":null,"project_id":1,"state_id":1}]
 #    curl 'http://localhost:8000/tasks?project_id=1&state_id=1'   # filtros solos o combinados
+#    curl -X POST http://localhost:8000/tasks \
+#         -H 'Content-Type: application/json' \
+#         -d '{"title":"Pagar recibo","project_id":1,"due_at":"2026-03-01T09:00:00Z"}'
+#         ->  {..., "due_at":"2026-03-01T09:00:00Z"}
+#    curl 'http://localhost:8000/tasks?overdue=true'   # due_at pasado y estado != HECHA
 
 # 7. Parar y retirar los contenedores
 docker compose down
@@ -66,7 +72,8 @@ ajusta `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` y `POSTGRES_PORT`.
 - `app/main.py` — aplicación ASGI, expuesta como `app.main:app`.
 - `app/models.py` — modelos SQLAlchemy: `State`, `Project` y `Task`.
 - `app/db.py` — URL de conexión y `sessionmaker` async desde variables de entorno.
-- `alembic/versions/` — migraciones: catálogo de estados y tablas `projects` y `tasks`.
+- `alembic/versions/` — migraciones: catálogo de estados, tablas `projects` y
+  `tasks`, y la columna `due_at` de `tasks`.
 - `tests/test_health.py` — verifica `GET /health` mediante una petición ASGI.
 - `tests/test_states.py`, `tests/test_states_migration.py` — catálogo de estados.
 - `tests/test_projects.py` — CRUD de Proyectos por HTTP contra la base real.
