@@ -25,12 +25,6 @@ Gestión con `uv` desde la raíz del repositorio. Detalle completo en
 - Las pruebas que ejercitan persistencia corren contra PostgreSQL, nunca
   SQLite. Detalle en `docs/decisiones-ingenieria.md`.
 
-## Pruebas
-
-- No se debilita ni elimina un test existente para conseguir verde. Si el
-  comportamiento acordado cambió, primero se actualiza `docs/contrato-api.md`
-  y después el test, en un commit separado.
-
 ## Datos locales
 
 - No abrir, mostrar, editar ni añadir a Git el archivo `.env`.

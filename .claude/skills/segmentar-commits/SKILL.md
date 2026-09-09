@@ -22,6 +22,13 @@ reparto.
 - No escribe ni modifica código, tests ni documentación para "arreglar" un
   commit intermedio. Si el reparto exige un cambio de código que no está hecho,
   eso se dice y se para: no es trabajo de esta skill.
+- Cada commit se arma **exclusivamente** con `git add` —del archivo completo o
+  de fragmentos con `git add -p`— sobre el cambio que ya está en el árbol de
+  trabajo, seguido de `git commit`. La skill nunca edita un archivo, ni lo
+  revierte a un estado previo, ni reconstruye un estado intermedio a mano: no
+  usa `Edit`, `Write` ni `git checkout`/`git restore` sobre el contenido. Al
+  terminar, el árbol de trabajo es idéntico byte a byte a como estaba al
+  empezar; lo único que cambia es cómo quedó repartido en la historia.
 - No crea ni borra ramas.
 - Antes de la aprobación solo usa comandos de lectura: `git status`,
   `git diff`, `git log`, `git show`, leer archivos.
@@ -80,10 +87,11 @@ reparto.
    No ejecutes ningún `git add` ni `git commit` hasta que el usuario apruebe.
    Si el usuario pide ajustes, rehaz la propuesta entera y vuelve a enseñarla.
 
-7. **Al confirmar, sigue el reparto aprobado al pie de la letra.** Si al
-   ejecutar aparece algo que el mapa no anticipaba (un archivo que hay que
-   partir más fino, un conflicto de orden), para y vuelve al paso 6 con la
-   propuesta corregida.
+7. **Al confirmar, sigue el reparto aprobado al pie de la letra.** Cada commit
+   se materializa sólo con `git add` —completo o `git add -p`— y `git commit`,
+   sin tocar el contenido de ningún archivo. Si al ejecutar aparece algo que el
+   mapa no anticipaba (un archivo que hay que partir más fino, un conflicto de
+   orden), para y vuelve al paso 6 con la propuesta corregida.
 
 ## Qué no hacer
 
