@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.db import get_sessionmaker
 from app.models import Project, State, Task
 
-app = FastAPI(title="TaskFlow API")
+app = FastAPI(title="TaskFlow API", version="0.1.0")
 
 DEFAULT_STATE_CODE = "PENDIENTE"
 DONE_STATE_CODE = "HECHA"
