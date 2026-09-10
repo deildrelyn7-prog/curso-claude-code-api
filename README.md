@@ -1,12 +1,12 @@
 # TaskFlow API
 
 Base de la API de TaskFlow: FastAPI gestionada con [uv](https://docs.astral.sh/uv/)
-y Python 3.12. Expone `GET /health`, el catálogo `GET /states`, el recurso
-Proyectos (`POST`, `GET` de colección, `GET` de detalle, `PATCH` y `DELETE`
-con `409` si el proyecto tiene tareas) y el recurso Tareas (`POST`, `GET`
-de colección con filtros `project_id`, `state_id` y `overdue`, `GET` de
-detalle, `PATCH` y `DELETE`). Las tareas admiten `due_at` opcional, con zona
-horaria y normalizado a UTC.
+y Python 3.12, con persistencia en PostgreSQL.
+
+El comportamiento observable (endpoints, códigos HTTP, esquemas de respuesta,
+normalización) está en [`docs/contrato-api.md`](docs/contrato-api.md). Las
+peticiones de ejemplo, encadenadas y listas para ejecutar, están en
+[`api.http`](api.http).
 
 ## Requisitos
 
@@ -14,58 +14,62 @@ horaria y normalizado a UTC.
 - uv
 - Docker con Compose v2
 
-## Recorrido
+## Puesta en marcha
 
-Ejecuta los pasos en orden desde la raíz del repositorio.
+Ejecuta los pasos en orden desde la raíz del repositorio. Un paso por línea.
 
 ```sh
-# 1. Instalar dependencias exactamente como fija el lock
+# 1. Instalar las dependencias exactamente como fija el lock.
 uv sync --locked
 
-# 2. Tests
-uv run pytest -q
-
-# 3. Linter
-uv run ruff check .
-
-# 4. Levantar PostgreSQL en segundo plano
+# 2. Levantar PostgreSQL en segundo plano.
 docker compose up -d
 
-# 5. Aplicar las migraciones (crea el catálogo de estados y las tablas projects y tasks)
+# 3. Esperar a que la base acepte conexiones (healthcheck del contenedor).
+docker compose ps --format '{{.Service}} {{.Health}}'
+
+# 4. Aplicar las migraciones: catálogo de estados, tablas projects y tasks, columna due_at.
 uv run alembic upgrade head
 
-# 6. Servir la API (Ctrl+C para parar)
+# 5. Arrancar la API en http://localhost:8000 (Ctrl+C para parar).
 uv run uvicorn app.main:app --reload
+```
 
-#    En otra terminal, comprobar los endpoints:
-#    curl http://localhost:8000/health   ->  {"status":"ok"}
-#    curl http://localhost:8000/states   ->  [{"id":1,"code":"PENDIENTE"}, ...]
-#    curl -X POST http://localhost:8000/projects \
-#         -H 'Content-Type: application/json' -d '{"name":"Casa"}'
-#         ->  {"id":1,"name":"Casa","description":null}
-#    curl http://localhost:8000/projects  ->  [{"id":1,"name":"Casa","description":null}]
-#    curl -X POST http://localhost:8000/tasks \
-#         -H 'Content-Type: application/json' \
-#         -d '{"title":"Regar las plantas","project_id":1}'
-#         ->  {"id":1,"title":"Regar las plantas","description":null,"project_id":1,"state_id":1}
-#    curl http://localhost:8000/tasks
-#         ->  [{"id":1,"title":"Regar las plantas","description":null,"project_id":1,"state_id":1}]
-#    curl 'http://localhost:8000/tasks?project_id=1&state_id=1'   # filtros solos o combinados
-#    curl -X POST http://localhost:8000/tasks \
-#         -H 'Content-Type: application/json' \
-#         -d '{"title":"Pagar recibo","project_id":1,"due_at":"2026-03-01T09:00:00Z"}'
-#         ->  {..., "due_at":"2026-03-01T09:00:00Z"}
-#    curl 'http://localhost:8000/tasks?overdue=true'   # due_at pasado y estado != HECHA
+Con la API arrancando, abre otra terminal para probar un endpoint.
 
-# 7. Parar y retirar los contenedores
+```sh
+# 6. Comprobación mínima: la API responde antes de tocar ninguna tabla.
+curl http://localhost:8000/health
+
+# 7. Recorrido completo de peticiones encadenadas: abre api.http en un cliente
+#    REST (VS Code REST Client, IntelliJ HTTP Client) y ejecútalas de arriba
+#    abajo. Cada petición reutiliza el id que devolvió la anterior.
+```
+
+Para detener y retirar los contenedores al terminar:
+
+```sh
 docker compose down
 ```
 
 ## Configuración
 
 `compose.yaml` arranca con valores por defecto seguros para desarrollo local, así
-que funciona sin `.env`. Para personalizarlo, copia `.env.example` a `.env` y
-ajusta `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` y `POSTGRES_PORT`.
+que funciona sin `.env`. Tanto la API (`app/db.py`) como las migraciones
+(`alembic/env.py`) leen `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`,
+`POSTGRES_HOST` y `POSTGRES_PORT`, con los mismos valores por defecto que el
+contenedor. Para personalizarlo, copia `.env.example` a `.env` y ajusta esas
+variables; `.env` no se versiona.
+
+## Comandos de desarrollo
+
+```sh
+# Tests (corren contra la base PostgreSQL de los pasos 2 a 4; nunca SQLite).
+uv run pytest -q
+
+# Linter.
+uv run ruff check .
+```
 
 ## Estructura
 
