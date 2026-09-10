@@ -137,7 +137,6 @@ def _serialize_task(task: Task) -> dict[str, object]:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    """Sonda de vida del servicio. No consulta la base ni expone detalles internos."""
     return {"status": "ok"}
 
 

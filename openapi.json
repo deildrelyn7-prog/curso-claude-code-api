@@ -230,7 +230,6 @@
   "paths": {
     "/health": {
       "get": {
-        "description": "Sonda de vida del servicio. No consulta la base ni expone detalles internos.",
         "operationId": "health_health_get",
         "responses": {
           "200": {
