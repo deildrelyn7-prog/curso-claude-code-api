@@ -1,0 +1,192 @@
+@host = http://localhost:8000
+
+### Salud: la API responde antes de tocar ninguna tabla
+GET {{host}}/health
+
+
+### Estados: el catálogo ya existe por migración, sin POST previo
+# @name listarEstados
+GET {{host}}/states
+
+
+### Proyectos: crea el proyecto que las tareas van a referenciar
+# @name crearProyectoCasa
+POST {{host}}/projects
+Content-Type: application/json
+
+{
+  "name": "Casa",
+  "description": "Tareas del hogar"
+}
+
+
+### Proyectos: un segundo proyecto, para los filtros de tareas por project_id
+# @name crearProyectoTrabajo
+POST {{host}}/projects
+Content-Type: application/json
+
+{
+  "name": "Trabajo"
+}
+
+
+### Proyectos: error de validación — name vacío tras recortar espacios
+POST {{host}}/projects
+Content-Type: application/json
+
+{
+  "name": "   "
+}
+
+
+### Proyectos: colección completa, orden por id ascendente
+GET {{host}}/projects
+
+
+### Proyectos: detalle del proyecto recién creado
+GET {{host}}/projects/{{crearProyectoCasa.response.body.$.id}}
+
+
+### Proyectos: error — id inexistente
+GET {{host}}/projects/999999
+
+
+### Proyectos: actualización parcial de description
+PATCH {{host}}/projects/{{crearProyectoCasa.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "description": "Tareas del hogar y del jardín"
+}
+
+
+### Tareas v1: crea la tarea que las siguientes peticiones van a leer, editar y borrar
+# @name crearTareaRegar
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Regar las plantas",
+  "project_id": {{crearProyectoCasa.response.body.$.id}}
+}
+
+
+### Tareas v1: segunda tarea, en el otro proyecto y con estado explícito, para los filtros
+# @name crearTareaInforme
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Entregar informe",
+  "project_id": {{crearProyectoTrabajo.response.body.$.id}},
+  "state_id": {{listarEstados.response.body.$[1].id}}
+}
+
+
+### Tareas v1: error de validación — title sin carácter visible (U+200B)
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "​",
+  "project_id": {{crearProyectoCasa.response.body.$.id}}
+}
+
+
+### Tareas v1: error de validación — project_id inexistente
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Tarea huérfana",
+  "project_id": 999999
+}
+
+
+### Tareas v1: colección completa, orden por id ascendente
+GET {{host}}/tasks
+
+
+### Tareas v1: filtro por project_id
+GET {{host}}/tasks?project_id={{crearProyectoCasa.response.body.$.id}}
+
+
+### Tareas v1: filtros combinados, project_id y state_id
+GET {{host}}/tasks?project_id={{crearProyectoTrabajo.response.body.$.id}}&state_id={{listarEstados.response.body.$[1].id}}
+
+
+### Tareas v1: detalle de la tarea recién creada
+GET {{host}}/tasks/{{crearTareaRegar.response.body.$.id}}
+
+
+### Tareas v1: error — id inexistente
+GET {{host}}/tasks/999999
+
+
+### Tareas v1: actualización parcial, cambia de estado
+PATCH {{host}}/tasks/{{crearTareaRegar.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "state_id": {{listarEstados.response.body.$[1].id}}
+}
+
+
+### Tareas v2: crea una tarea con due_at, con zona horaria, para el filtro overdue
+# @name crearTareaVencida
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Pagar recibo",
+  "project_id": {{crearProyectoCasa.response.body.$.id}},
+  "due_at": "2020-01-01T09:00:00Z"
+}
+
+
+### Tareas v2: error de validación — due_at sin zona horaria
+POST {{host}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Fecha ambigua",
+  "project_id": {{crearProyectoCasa.response.body.$.id}},
+  "due_at": "2026-03-01T09:00:00"
+}
+
+
+### Tareas v2: PATCH que limpia due_at con null explícito
+PATCH {{host}}/tasks/{{crearTareaVencida.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "due_at": null
+}
+
+
+### Tareas v2: filtro overdue — solo tareas vencidas y no HECHA
+GET {{host}}/tasks?overdue=true
+
+
+### Tareas v1: borra la tarea de informe, deja "Regar" y "Pagar recibo" vivas
+DELETE {{host}}/tasks/{{crearTareaInforme.response.body.$.id}}
+
+
+### Tareas v1: error — DELETE de id inexistente
+DELETE {{host}}/tasks/999999
+
+
+### Proyectos: error 409 — Casa todavía tiene tareas asociadas
+DELETE {{host}}/projects/{{crearProyectoCasa.response.body.$.id}}
+
+
+### Proyectos: limpieza — borra las tareas restantes de Casa antes de poder borrarlo
+DELETE {{host}}/tasks/{{crearTareaRegar.response.body.$.id}}
+
+
+### Proyectos: limpieza — borra la tarea vencida, la última que quedaba en Casa
+DELETE {{host}}/tasks/{{crearTareaVencida.response.body.$.id}}
+
+
+### Proyectos: ahora sin tareas, se borra con 204
+DELETE {{host}}/projects/{{crearProyectoCasa.response.body.$.id}}
