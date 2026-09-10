@@ -8,6 +8,15 @@ normalización) está en [`docs/contrato-api.md`](docs/contrato-api.md). Las
 peticiones de ejemplo, encadenadas y listas para ejecutar, están en
 [`api.http`](api.http).
 
+FastAPI genera la especificación OpenAPI a partir del código. Con el servidor
+en marcha se sirve en `GET /openapi.json` (y la UI en `/docs` y `/redoc`).
+[`openapi.json`](openapi.json) en la raíz es una copia versionada de esa
+especificación; se regenera sin levantar el servidor ni tocar la base de datos:
+
+```sh
+uv run python -c "import json; from app.main import app; json.dump(app.openapi(), open('openapi.json', 'w'), indent=2, ensure_ascii=False, sort_keys=True)"
+```
+
 ## Requisitos
 
 - Python 3.12
