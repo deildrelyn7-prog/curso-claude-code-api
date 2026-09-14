@@ -57,8 +57,9 @@ No expone credenciales ni detalles internos.
 
 Catálogo fijo: `PENDIENTE`, `EN_CURSO`, `BLOQUEADA`, `HECHA`.
 
-**No tiene endpoints.** Los estados no se crean ni se borran desde la API: son un
-catálogo cerrado que existe antes de que llegue la primera petición.
+**No tiene endpoints de escritura.** Los estados no se crean ni se borran desde
+la API: son un catálogo cerrado que existe antes de que llegue la primera
+petición. La única ruta es la lectura `GET /states` de la tabla siguiente.
 
 | Método y ruta | Comportamiento |
 |---|---|
