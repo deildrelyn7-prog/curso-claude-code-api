@@ -1,11 +1,21 @@
 import unicodedata
 from datetime import UTC, datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 
 from app.db import get_sessionmaker
+from app.errors import (
+    PROJECT_ID_NO_EXISTE,
+    PROJECT_ID_NO_PUEDE_SER_NULL,
+    PROYECTO_CON_TAREAS,
+    STATE_ID_NO_EXISTE,
+    STATE_ID_NO_PUEDE_SER_NULL,
+    conflicto,
+    no_encontrado,
+    referencia_invalida,
+)
 from app.models import Project, State, Task
 
 app = FastAPI(title="TaskFlow API", version="0.1.0")
@@ -177,7 +187,7 @@ async def get_project(project_id: int) -> dict[str, object]:
     async with async_session() as session:
         project = await session.get(Project, project_id)
     if project is None:
-        raise HTTPException(status_code=404, detail="proyecto no encontrado")
+        raise no_encontrado("proyecto")
     return _serialize(project)
 
 
@@ -188,7 +198,7 @@ async def patch_project(project_id: int, payload: ProjectPatch) -> dict[str, obj
     async with async_session() as session:
         project = await session.get(Project, project_id)
         if project is None:
-            raise HTTPException(status_code=404, detail="proyecto no encontrado")
+            raise no_encontrado("proyecto")
         if "name" in campos:
             project.name = payload.name
         if "description" in campos:
@@ -204,14 +214,12 @@ async def delete_project(project_id: int) -> None:
     async with async_session() as session:
         project = await session.get(Project, project_id)
         if project is None:
-            raise HTTPException(status_code=404, detail="proyecto no encontrado")
+            raise no_encontrado("proyecto")
         tiene_tareas = await session.execute(
             select(Task.id).where(Task.project_id == project_id).limit(1)
         )
         if tiene_tareas.first() is not None:
-            raise HTTPException(
-                status_code=409, detail="el proyecto tiene tareas asociadas"
-            )
+            raise conflicto(PROYECTO_CON_TAREAS)
         await session.delete(project)
         await session.commit()
 
@@ -225,13 +233,13 @@ async def _resolver_state_id(session, state_id: int | None) -> int:
         return result.scalar_one()
     existe = await session.get(State, state_id)
     if existe is None:
-        raise HTTPException(status_code=422, detail="state_id no existe")
+        raise referencia_invalida(STATE_ID_NO_EXISTE)
     return state_id
 
 
 async def _validar_project_id(session, project_id: int) -> None:
     if await session.get(Project, project_id) is None:
-        raise HTTPException(status_code=422, detail="project_id no existe")
+        raise referencia_invalida(PROJECT_ID_NO_EXISTE)
 
 
 @app.post("/tasks", status_code=201)
@@ -285,7 +293,7 @@ async def get_task(task_id: int) -> dict[str, object]:
     async with async_session() as session:
         task = await session.get(Task, task_id)
     if task is None:
-        raise HTTPException(status_code=404, detail="tarea no encontrada")
+        raise no_encontrado("tarea")
     return _serialize_task(task)
 
 
@@ -296,15 +304,15 @@ async def patch_task(task_id: int, payload: TaskPatch) -> dict[str, object]:
     async with async_session() as session:
         task = await session.get(Task, task_id)
         if task is None:
-            raise HTTPException(status_code=404, detail="tarea no encontrada")
+            raise no_encontrado("tarea")
         if "project_id" in campos:
             if payload.project_id is None:
-                raise HTTPException(status_code=422, detail="project_id no puede ser null")
+                raise referencia_invalida(PROJECT_ID_NO_PUEDE_SER_NULL)
             await _validar_project_id(session, payload.project_id)
             task.project_id = payload.project_id
         if "state_id" in campos:
             if payload.state_id is None:
-                raise HTTPException(status_code=422, detail="state_id no puede ser null")
+                raise referencia_invalida(STATE_ID_NO_PUEDE_SER_NULL)
             task.state_id = await _resolver_state_id(session, payload.state_id)
         if "title" in campos:
             task.title = payload.title
@@ -323,6 +331,6 @@ async def delete_task(task_id: int) -> None:
     async with async_session() as session:
         task = await session.get(Task, task_id)
         if task is None:
-            raise HTTPException(status_code=404, detail="tarea no encontrada")
+            raise no_encontrado("tarea")
         await session.delete(task)
         await session.commit()
