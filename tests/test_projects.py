@@ -186,6 +186,26 @@ async def test_patch_project_esquema_exacto() -> None:
     assert set(response.json().keys()) == PROJECT_KEYS
 
 
+async def test_get_project_id_no_entero_es_422() -> None:
+    async with client() as c:
+        response = await c.get("/projects/abc")
+
+    assert response.status_code == 422
+    assert "detail" in response.json()
+
+
+async def test_patch_project_cuerpo_vacio_no_cambia_nada() -> None:
+    async with client() as c:
+        creado = await c.post(
+            "/projects", json={"name": "Casa", "description": "hogar"}
+        )
+        project_id = creado.json()["id"]
+        response = await c.patch(f"/projects/{project_id}", json={})
+
+    assert response.status_code == 200
+    assert response.json() == creado.json()
+
+
 async def test_delete_project_sin_tareas_es_204() -> None:
     async with client() as c:
         creado = await c.post("/projects", json={"name": "Casa"})

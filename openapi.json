@@ -14,6 +14,19 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HealthRead": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthRead",
+        "type": "object"
+      },
       "ProjectCreate": {
         "properties": {
           "description": {
@@ -64,6 +77,54 @@
           }
         },
         "title": "ProjectPatch",
+        "type": "object"
+      },
+      "ProjectRead": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "title": "ProjectRead",
+        "type": "object"
+      },
+      "StateRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code"
+        ],
+        "title": "StateRead",
         "type": "object"
       },
       "TaskCreate": {
@@ -180,6 +241,58 @@
         "title": "TaskPatch",
         "type": "object"
       },
+      "TaskRead": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "integer"
+          },
+          "state_id": {
+            "title": "State Id",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "project_id",
+          "state_id",
+          "due_at"
+        ],
+        "title": "TaskRead",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -236,11 +349,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Health Health Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/HealthRead"
                 }
               }
             },
@@ -259,8 +368,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/components/schemas/ProjectRead"
                   },
                   "title": "Response List Projects Projects Get",
                   "type": "array"
@@ -289,9 +397,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Create Project Projects Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProjectRead"
                 }
               }
             },
@@ -360,9 +466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Project Projects  Project Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProjectRead"
                 }
               }
             },
@@ -409,9 +513,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Patch Project Projects  Project Id  Patch",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProjectRead"
                 }
               }
             },
@@ -440,8 +542,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/components/schemas/StateRead"
                   },
                   "title": "Response List States States Get",
                   "type": "array"
@@ -513,8 +614,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/components/schemas/TaskRead"
                   },
                   "title": "Response List Tasks Tasks Get",
                   "type": "array"
@@ -553,9 +653,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Create Task Tasks Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskRead"
                 }
               }
             },
@@ -624,9 +722,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Task Tasks  Task Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskRead"
                 }
               }
             },
@@ -673,9 +769,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Patch Task Tasks  Task Id  Patch",
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskRead"
                 }
               }
             },

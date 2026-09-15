@@ -115,6 +115,30 @@ class TaskPatch(BaseModel):
         return _clean_due_at(value)
 
 
+class HealthRead(BaseModel):
+    status: str
+
+
+class StateRead(BaseModel):
+    id: int
+    code: str
+
+
+class ProjectRead(BaseModel):
+    id: int
+    name: str
+    description: str | None
+
+
+class TaskRead(BaseModel):
+    id: int
+    title: str
+    description: str | None
+    project_id: int
+    state_id: int
+    due_at: str | None
+
+
 def _serialize(project: Project) -> dict[str, object]:
     return {
         "id": project.id,
@@ -145,12 +169,12 @@ def _serialize_task(task: Task) -> dict[str, object]:
     }
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthRead)
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/states")
+@app.get("/states", response_model=list[StateRead])
 async def list_states() -> list[dict[str, object]]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -161,7 +185,7 @@ async def list_states() -> list[dict[str, object]]:
     return [{"id": state.id, "code": state.code} for state in states]
 
 
-@app.post("/projects", status_code=201)
+@app.post("/projects", status_code=201, response_model=ProjectRead)
 async def create_project(payload: ProjectCreate) -> dict[str, object]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -172,7 +196,7 @@ async def create_project(payload: ProjectCreate) -> dict[str, object]:
         return _serialize(project)
 
 
-@app.get("/projects")
+@app.get("/projects", response_model=list[ProjectRead])
 async def list_projects() -> list[dict[str, object]]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -181,7 +205,7 @@ async def list_projects() -> list[dict[str, object]]:
     return [_serialize(project) for project in projects]
 
 
-@app.get("/projects/{project_id}")
+@app.get("/projects/{project_id}", response_model=ProjectRead)
 async def get_project(project_id: int) -> dict[str, object]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -191,7 +215,7 @@ async def get_project(project_id: int) -> dict[str, object]:
     return _serialize(project)
 
 
-@app.patch("/projects/{project_id}")
+@app.patch("/projects/{project_id}", response_model=ProjectRead)
 async def patch_project(project_id: int, payload: ProjectPatch) -> dict[str, object]:
     campos = payload.model_fields_set
     async_session = get_sessionmaker()
@@ -242,7 +266,7 @@ async def _validar_project_id(session, project_id: int) -> None:
         raise referencia_invalida(PROJECT_ID_NO_EXISTE)
 
 
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", status_code=201, response_model=TaskRead)
 async def create_task(payload: TaskCreate) -> dict[str, object]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -261,7 +285,7 @@ async def create_task(payload: TaskCreate) -> dict[str, object]:
         return _serialize_task(task)
 
 
-@app.get("/tasks")
+@app.get("/tasks", response_model=list[TaskRead])
 async def list_tasks(
     project_id: int | None = None,
     state_id: int | None = None,
@@ -287,7 +311,7 @@ async def list_tasks(
     return [_serialize_task(task) for task in tasks]
 
 
-@app.get("/tasks/{task_id}")
+@app.get("/tasks/{task_id}", response_model=TaskRead)
 async def get_task(task_id: int) -> dict[str, object]:
     async_session = get_sessionmaker()
     async with async_session() as session:
@@ -297,7 +321,7 @@ async def get_task(task_id: int) -> dict[str, object]:
     return _serialize_task(task)
 
 
-@app.patch("/tasks/{task_id}")
+@app.patch("/tasks/{task_id}", response_model=TaskRead)
 async def patch_task(task_id: int, payload: TaskPatch) -> dict[str, object]:
     campos = payload.model_fields_set
     async_session = get_sessionmaker()

@@ -302,6 +302,14 @@ async def test_get_task_inexistente_es_404() -> None:
     assert "detail" in respuesta.json()
 
 
+async def test_get_task_id_no_entero_es_422() -> None:
+    async with client() as c:
+        respuesta = await c.get("/tasks/abc")
+
+    assert respuesta.status_code == 422
+    assert "detail" in respuesta.json()
+
+
 # --- Incremento 6: PATCH /tasks/{id} ---
 
 
@@ -402,6 +410,43 @@ async def test_patch_task_inexistente_es_404() -> None:
 
     assert respuesta.status_code == 404
     assert "detail" in respuesta.json()
+
+
+async def test_patch_task_project_id_null_explicito_es_422_y_no_cambia() -> None:
+    async with client() as c:
+        await _crear_proyecto(c, "Casa")
+        creado = await c.post("/tasks", json={"title": "Regar", "project_id": 1})
+        task_id = creado.json()["id"]
+        respuesta = await c.patch(f"/tasks/{task_id}", json={"project_id": None})
+        leido = await c.get(f"/tasks/{task_id}")
+
+    assert respuesta.status_code == 422
+    assert "detail" in respuesta.json()
+    assert leido.json()["project_id"] == 1
+
+
+async def test_patch_task_state_id_null_explicito_es_422_y_no_cambia() -> None:
+    async with client() as c:
+        await _crear_proyecto(c, "Casa")
+        creado = await c.post("/tasks", json={"title": "Regar", "project_id": 1})
+        task_id = creado.json()["id"]
+        respuesta = await c.patch(f"/tasks/{task_id}", json={"state_id": None})
+        leido = await c.get(f"/tasks/{task_id}")
+
+    assert respuesta.status_code == 422
+    assert "detail" in respuesta.json()
+    assert leido.json()["state_id"] == STATE_PENDIENTE
+
+
+async def test_patch_task_cuerpo_vacio_no_cambia_nada() -> None:
+    async with client() as c:
+        await _crear_proyecto(c, "Casa")
+        creado = await c.post("/tasks", json={"title": "Regar", "project_id": 1})
+        task_id = creado.json()["id"]
+        respuesta = await c.patch(f"/tasks/{task_id}", json={})
+
+    assert respuesta.status_code == 200
+    assert respuesta.json() == creado.json()
 
 
 async def test_patch_task_esquema_exacto() -> None:
