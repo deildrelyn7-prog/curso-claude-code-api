@@ -15,7 +15,28 @@
       "Bash(git commit *)"
     ],
     "ask": [
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "mcp__postman__createCollection",
+      "mcp__postman__createCollectionRequest",
+      "mcp__postman__createCollectionResponse",
+      "mcp__postman__createEnvironment",
+      "mcp__postman__createMock",
+      "mcp__postman__createSpec",
+      "mcp__postman__createSpecFile",
+      "mcp__postman__createWorkspace",
+      "mcp__postman__duplicateCollection",
+      "mcp__postman__generateCollection",
+      "mcp__postman__generateSpecFromCollection",
+      "mcp__postman__publishMock",
+      "mcp__postman__putCollection",
+      "mcp__postman__putEnvironment",
+      "mcp__postman__syncCollectionWithSpec",
+      "mcp__postman__syncSpecWithCollection",
+      "mcp__postman__updateCollectionRequest",
+      "mcp__postman__updateMock",
+      "mcp__postman__updateSpecFile",
+      "mcp__postman__updateSpecProperties",
+      "mcp__postman__updateWorkspace"
     ],
     "deny": [
       "Read(.env)",
