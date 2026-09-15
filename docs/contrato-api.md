@@ -107,6 +107,11 @@ Campos: `id`, `title`, `description` opcional, `project_id`, `state_id`.
 | `PATCH /tasks/{id}` | `200` con actualización parcial consistente |
 | `DELETE /tasks/{id}` | `204` sin cuerpo |
 
+`project_id` y `state_id` son obligatorios en la tarea: un `PATCH` que envíe
+alguno de los dos explícitamente como `null` se rechaza con `422`, igual que
+una referencia inexistente. No hay forma de dejar una tarea sin proyecto ni
+sin estado.
+
 ## Tareas v2: Fechas Límite
 
 Se añade `due_at`, opcional, con zona horaria y normalizado a UTC. Omitirlo
