@@ -13,6 +13,10 @@
 #     docs/esquema.md puede haber quedado desactualizado y nombra la skill
 #     que lo regenera (describir-esquema), porque esa regeneracion la hace un
 #     modelo interpretando el codigo, no un comando de shell.
+#   - openapi.json                -> avisa que la coleccion de Postman puede
+#     haber quedado desactualizada y nombra la skill que la regenera
+#     (construir-coleccion-postman), por la misma razon: es un modelo
+#     llamando al servidor MCP de Postman, no un comando de shell.
 #
 # Cualquier otro archivo editado no dispara nada.
 #
@@ -51,6 +55,12 @@ esac
 case "$relativa" in
   app/main.py|app/models.py|alembic/versions/*.py)
     echo "docs/esquema.md puede haber quedado desactualizado tras editar $relativa. Para regenerarlo, invoca la skill describir-esquema."
+    ;;
+esac
+
+case "$relativa" in
+  openapi.json)
+    echo "La coleccion de Postman puede haber quedado desactualizada tras editar $relativa. Para regenerarla, invoca la skill construir-coleccion-postman."
     ;;
 esac
 
